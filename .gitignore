@@ -1,0 +1,28 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+
+# Claude Code internals
+.claude/settings.local.json
+.remember/
+
+# Large raw MIND data — download from https://msnews.github.io/
+data/MINDsmall_*.zip
+data/train/
+data/dev/
+
+# Large computed arrays — regenerate by running Stage 2 (python -m src.models.embeddings)
+data/article_embeddings.npz
+data/ds_*.dat
+data/ds_*.dat.meta
+
+# Large downloaded model weights — regenerate via scripts/download_model.py
+models/bart-mnli/

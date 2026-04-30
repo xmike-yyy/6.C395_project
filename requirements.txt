@@ -1,0 +1,11 @@
+anthropic
+transformers
+sentence-transformers
+torch
+accelerate
+pandas
+numpy
+scikit-learn
+streamlit
+python-dotenv
+ranx
