@@ -16,10 +16,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the project root:
-```
-ANTHROPIC_API_KEY=your_key_here
-```
+> **Note:** A `.env` file with `ANTHROPIC_API_KEY=...` is only needed if re-running Stage 1 scoring. Stage 3 evaluation does not use the Anthropic API.
 
 ## What's Already in the Repo
 
@@ -33,7 +30,7 @@ Stages 1 and 2 are complete. The following outputs are committed and you don't n
 | `models/baseline.pt` | Trained click-prediction model |
 | `models/informative.pt` | Trained informativeness model |
 
-**For Stage 3 (Ernesto):** clone the repo, run setup, download the MIND data (see below), then go straight to `python -m src.evaluate.metrics`.
+**For Stage 3 (Ernesto):** see the [Stage 3 Handoff](#stage-3-handoff-ernesto) section below.
 
 ## Getting the Data
 
@@ -72,9 +69,8 @@ python -m src.models.informative    # informativeness model   → models/informa
 ```
 
 ### Stage 3 — Evaluate
-```bash
-python -m src.evaluate.metrics
-```
+
+See the [Stage 3 Handoff](#stage-3-handoff-ernesto) section.
 
 ### Demo
 ```bash
@@ -95,12 +91,18 @@ src/
     embeddings.py
     baseline.py
     informative.py
-  evaluate/             # Stage 3: compare models
-    metrics.py
-app/
-  app.py                # Streamlit side-by-side demo
-data/                   # gitignored
-models/                 # gitignored
+  evaluate/             # Stage 3: compare models (Ernesto)
+    metrics.py          # ← needs to be written
+data/
+  article_scores.csv    # committed — Stage 1 output
+  click_quality.csv     # committed — Stage 1 output
+  y_tilde.csv           # committed — Stage 1 output
+  train/, dev/          # not committed — download from msnews.github.io
+  article_embeddings.npz  # not committed — regenerate via embeddings.py
+models/
+  baseline.pt           # committed — trained model
+  informative.pt        # committed — trained model
+  bart-mnli/            # not committed — download via scripts/download_model.py
 ```
 
 ## Division of Work
@@ -112,3 +114,67 @@ models/                 # gitignored
 | Model training (Stage 2) | Michael |
 | Evaluation (Stage 3) | Ernesto |
 | Demo app | TBD |
+
+---
+
+## Stage 3 Handoff (Ernesto)
+
+Stages 1 and 2 are done. The trained models and all label CSVs are in the repo. Here's exactly what you need to do.
+
+### Step 1 — Clone and install
+
+```bash
+git clone https://github.com/xmike-yyy/6.C395_project.git
+cd 6.C395_project
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Step 2 — Download MIND-small
+
+1. Go to **https://msnews.github.io/** and download `MINDsmall_train.zip` and `MINDsmall_dev.zip`
+2. Place both zips in `data/`
+3. Extract:
+
+```bash
+python scripts/download_data.py
+```
+
+### Step 3 — Regenerate article embeddings
+
+The embeddings file is too large to commit (76MB). Regenerate it once (~5 min on CPU):
+
+```bash
+python -m src.models.embeddings
+```
+
+This writes `data/article_embeddings.npz` and is required before running evaluation.
+
+### Step 4 — Write `src/evaluate/metrics.py`
+
+This file doesn't exist yet — it's your task. Load both trained models and run them on the dev split (`data/dev/MINDsmall_dev/behaviors.tsv`). Suggested metrics:
+
+- **NDCG@K** — standard ranking metric; use the `ranx` library
+- **Precision@K on Ỹ** — fraction of each model's top-K with `y_tilde > threshold` (threshold ≈ 0.5); load scores from `data/article_scores.csv`
+- **Click-and-bounce rate** — do baseline recommendations correlate more with the behavioral bounce signal in `data/click_quality.csv`?
+- **Score distribution** — histogram of LLM informativeness scores for each model's top-K (the main visual for the paper)
+- **AUC on held-out clicks** — sanity check: how much click accuracy does the informative model trade away?
+
+To load a model:
+
+```python
+import torch
+from src.models.embeddings import RecommenderMLP
+from src.config import BASELINE_MODEL, INFORMATIVE_MODEL
+
+baseline = RecommenderMLP()
+baseline.load_state_dict(torch.load(BASELINE_MODEL, map_location="cpu"))
+baseline.eval()
+
+informative = RecommenderMLP()
+informative.load_state_dict(torch.load(INFORMATIVE_MODEL, map_location="cpu"))
+informative.eval()
+```
+
+User embeddings are built the same way training built them — mean of clicked article embeddings from the history field. See `src/models/embeddings.py` (`build_dataset`) for the exact logic.
