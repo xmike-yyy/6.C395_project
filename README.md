@@ -178,3 +178,7 @@ informative.eval()
 ```
 
 User embeddings are built the same way training built them — mean of clicked article embeddings from the history field. See `src/models/embeddings.py` (`build_dataset`) for the exact logic.
+
+### If results are weak
+
+If the two models' top-K recommendations look nearly identical (score distributions overlap heavily, Precision@K on Ỹ is similar), the content-based MLP may not have enough capacity to separate the two labels. The planned upgrade is **NRMS** (Neural News Recommendation with Multi-Head Self-Attention — Wu et al., ACL 2020). It replaces the MLP with a news encoder (multi-head self-attention over word embeddings) and a user encoder (additive attention over clicked-news encodings). The training loop and label setup stay the same; only the model architecture changes. See the paper for implementation details.
