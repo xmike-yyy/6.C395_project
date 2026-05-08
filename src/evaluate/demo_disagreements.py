@@ -62,15 +62,10 @@ def load_y_tilde() -> Dict[Tuple[str, str], float]:
     if not Y_TILDE_CSV.exists():
         return {}
     df = pd.read_csv(Y_TILDE_CSV)
-    if {"UserID","NewsID"}.issubset(df.columns):
-        # pick first numeric column aside from IDs
-        num_cols = [c for c in df.columns if c not in ("UserID","NewsID") and pd.api.types.is_numeric_dtype(df[c])]
-        y_col = num_cols[0] if num_cols else None
-        if not y_col:
-            return {}
-        return {(str(r.UserID), str(r.NewsID)): float(getattr(r, y_col))
-                for r in df.itertuples(index=False)}
-    return {}
+    if not {"UserID", "NewsID", "y_tilde"}.issubset(df.columns):
+        return {}
+    return {(str(r.UserID), str(r.NewsID)): float(r.y_tilde)
+            for r in df.itertuples(index=False)}
 
 def load_click_quality() -> Tuple[Dict[Tuple[str,str],float], Dict[str,float]]:
     if not CLICK_QUALITY_CSV.exists():

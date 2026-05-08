@@ -56,7 +56,9 @@ from src.models.embeddings import (
 
 OUT_DIR = Path("outputs")
 KS = (5, 10)
-INFO_THRESHOLD = 0.5
+# Threshold set to ~75th percentile of actual score distribution (~0.944).
+# A fixed 0.5 threshold is useless: 99.5% of articles score above it.
+INFO_THRESHOLD = 0.944
 MAX_DISAGREEMENT_EXAMPLES = 100
 
 
